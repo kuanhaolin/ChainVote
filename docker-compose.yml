@@ -1,0 +1,43 @@
+version: '3.8'
+services:
+  blockchain-node:
+    container_name: chain-node
+    build:
+      context: .
+      dockerfile: ./chain/Dockerfile
+    ports:
+      - "8545:8545"
+    environment:
+      - DEPLOYER_WALLET_PRIVATE_KEY=${DEPLOYER_WALLET_PRIVATE_KEY}
+    networks:
+      - chainvote-network
+
+  oracle:
+    container_name: oracle-node
+    build: 
+      context: ./oracle
+      dockerfile: Dockerfile
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=production
+      - BLOCKCHAIN_RPC=http://blockchain-node:8545
+      - DEPLOYER_WALLET_PRIVATE_KEY=${DEPLOYER_WALLET_PRIVATE_KEY}
+    depends_on:
+      - blockchain-node
+    networks:
+      - chainvote-network
+    restart: unless-stopped
+
+  frontend:
+    container_name: frontend-node
+    build: ./frontend
+    ports:
+      - "3000:3000"
+    networks:
+      - chainvote-network
+    restart: unless-stopped
+
+networks:
+  chainvote-network:
+    driver: bridge

@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  scaffold-eth-2:
+    container_name: scaffold-eth-2
+    image: node:18
+    working_dir: /app
+    ports:
+      - "3000:3000"
+      - "8545:8545"
+    volumes:
+      - .:/app
+    environment:
+      - NEXT_PUBLIC_NETWORK=localhost
+      - YARN_CHECKSUM_BEHAVIOR=ignore
+    command: >
+      sh -c "yarn install && 
+             (yarn chain &) && 
+             sleep 10 && 
+             yarn deploy && 
+             yarn start"
