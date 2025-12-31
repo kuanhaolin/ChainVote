@@ -16,7 +16,7 @@ async function main() {
   const ipfsCIDs = ["QmHashA123", "QmHashB456", "QmHashC789"];
   const duration = 60; // mins
 
-  const contractPath = join(__dirname, "../artifacts/contracts/Ballot.sol/Ballot.json");
+  const contractPath = join(__dirname, "../artifacts/contracts/ballot.sol/Ballot.json");
   const contractJson = JSON.parse(fs.readFileSync(contractPath, "utf8"));
   
   const factory = new ethers.ContractFactory(contractJson.abi, contractJson.bytecode, wallet);

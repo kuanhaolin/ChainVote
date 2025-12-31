@@ -2,11 +2,7 @@
 
 The system utilizes blockchain technology, including smart contracts and IPFS for decentralized storage.
 
----
-
 ## Getting Started
-
----
 
 ## Structure
 
