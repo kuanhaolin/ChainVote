@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue'
 import axios from 'axios';
 import { ethers } from 'ethers';
+import * as snarkjs from 'snarkjs';
 import greenLogo from './img/green.png'
 import blueLogo from './img/blue.png'
 import whiteLogo from './img/white.png'
@@ -12,6 +13,7 @@ const healthCardNumber = ref('')
 const userAddress = ref('')
 const candidates = ref([])
 const showVerifyModal = ref(false)
+const zkpData = ref(null)
 
 const candidateLogos = [greenLogo, blueLogo, whiteLogo]
 const candidateColors = ['#008000', '#0000CD', '#ADD8E6']
@@ -64,9 +66,10 @@ const handleVerify = async () => {
       const response = await axios.post('http://localhost:3001/api/verify', {
         idCardNumber: idCardNumber.value,
         healthCardNumber: healthCardNumber.value,
-        userAddress: userAddress.value
       });
       if (response.data.verified) {
+        const {root, nullifier, pathElements, pathIndices} = response.data;
+        zkpData.value = {root, nullifier, pathElements, pathIndices};
         isVerified.value = true
         showVerifyModal.value = false
         alert('Successful')
@@ -82,42 +85,59 @@ const handleVerify = async () => {
 
 const vote = async (candidateIndex) => {
   if (!window.ethereum) return alert("Please connect MetaMask wallet.");
+  if (!zkpData.value) return alert("Please verify first!");
+  
   try {
-    const provider = new ethers.BrowserProvider(window.ethereum);
-    const signer = await provider.getSigner();
-    const contractAddress = '0x5FbDB2315678afecb367f032d93F642f64180aa3';
-    const abi = [
-      "function voteCandidate(uint256 candidateIndex) public",
-      "function voters(address) public view returns(tuple(bool isAuthorized, bool hasVoted, uint256 voteIndex))"
-    ];
-    const contract = new ethers.Contract(contractAddress, abi, provider);
-    const voterInfo = await contract.voters(userAddress.value.toLowerCase());
+    const input = {
+      userSecret: idCardNumber.value,
+      nullifier: zkpData.value.nullifier,
+      candidateIndex: candidateIndex + 1,
+      pathElements: zkpData.value.pathElements,
+      pathIndices: zkpData.value.pathIndices,
+      root: zkpData.value.root
+    };
+    
+    // generate proof
+    const {proof, publicSignals} = await snarkjs.groth16.fullProve(
+      input,
+      "/zk/zkp.wasm",
+      "/zk/zkp_final.zkey"
+    );
 
-    if (!voterInfo.isAuthorized) {
-      alert('You are not authorized.')
-      return;
-    }
-    if (voterInfo.hasVoted) {
-      alert('You have already voted!')
-      return;
-    }
-
-    const contractWithSigner = new ethers.Contract(contractAddress, abi, signer);
-    const tx = await contractWithSigner.voteCandidate(candidateIndex);
-    await tx.wait();
+    // convert format
+    const callData = await snarkjs.groth16.exportSolidityCallData(proof, publicSignals);
+    const argv = JSON.parse("[" + callData + "]");
+    
+    await voteTocontract(argv);
+    alert('Vote successful!')
   } catch (error) {
-    alert('Vote failed!!!')
-    return;
+    alert('Vote failed: ' + error.message)
   }
-  alert('Successful')
+}
+
+const voteTocontract = async (argv) => {
+  const provider = new ethers.BrowserProvider(window.ethereum);
+  const signer = await provider.getSigner();
+  const contractAddress = '0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512';
+  const abi = [
+    "function vote(uint[2] _proofa, uint[2][2] _proofb, uint[2] _proofc, uint[6] _input) public",
+  ];
+  const contractWithSigner = new ethers.Contract(contractAddress, abi, signer);
+  const tx = await contractWithSigner.vote(
+    argv[0],
+    argv[1],
+    argv[2],
+    argv[3]
+  );
+  await tx.wait();
 }
 
 const fetchCandidates = async () => {
   try {
     const provider = new ethers.BrowserProvider(window.ethereum);
-    const contractAddress = '0x5FbDB2315678afecb367f032d93F642f64180aa3';
+    const contractAddress = '0xe7f1725e7734ce288f8367e1bb143e90bb3f0512';
     const abi = [
-      "function getCandidates() public view returns (tuple(string name, string ipfsCID, uint256 voteCount)[])"
+      "function getCandidates() public view returns((string name, string ipfsCID, uint256 voteCount)[])"
     ];
     const contract = new ethers.Contract(contractAddress, abi, provider);
     const candidateInfo = await contract.getCandidates();
@@ -135,12 +155,12 @@ const setupEventListener = async () => {
   if (!window.ethereum) return;
   try {
     const provider = new ethers.BrowserProvider(window.ethereum);
-    const contractAddress = '0x5FbDB2315678afecb367f032d93F642f64180aa3';
+    const contractAddress = '0xe7f1725e7734ce288f8367e1bb143e90bb3f0512';
     const abi = [
-      "event VoteCandidate(address voter, uint256 candidateIndex)"
+      "event Vote(uint256 indexed nullifierHash, uint256 candidate01, uint256 candidate02, uint256 candidate03)"
     ];
     const contract = new ethers.Contract(contractAddress, abi, provider);
-    contract.on("VoteCandidate", (voter, candidateIndex) => {
+    contract.on("Vote", (nullifierHash, candidate01, candidate02, candidate03) => {
       fetchCandidates();
     });
   } catch (error) {
@@ -148,6 +168,7 @@ const setupEventListener = async () => {
   }
 }
 
+// init events
 onMounted(() => {
   fetchCandidates();
   setupEventListener()

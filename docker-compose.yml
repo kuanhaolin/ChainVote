@@ -9,6 +9,7 @@ services:
       - "8545:8545"
     environment:
       - DEPLOYER_WALLET_PRIVATE_KEY=${DEPLOYER_WALLET_PRIVATE_KEY}
+      - DEPLOYER_WALLET_PRIVATE_KEY01=${DEPLOYER_WALLET_PRIVATE_KEY01}
     networks:
       - chainvote-network
 
