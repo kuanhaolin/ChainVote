@@ -39,9 +39,9 @@ circom zkp.circom --r1cs --wasm --sym
 Begin a new Powers of Tau, then add randomness and prepare phase 2.
 
 ```bash
-npx snarkjs powersoftau new bn128 12 pot12_0000.ptau -v
-npx snarkjs powersoftau contribute pot12_0000.ptau pot12_0001.ptau --name="First contribution" -v
-npx snarkjs powersoftau prepare phase2 pot12_0001.ptau pot12_final.ptau -v
+npx snarkjs powersoftau new bn128 15 pot15_0000.ptau -v
+npx snarkjs powersoftau contribute pot15_0000.ptau pot15_0001.ptau --name="First contribution" -v
+npx snarkjs powersoftau prepare phase2 pot15_0001.ptau pot15_final.ptau -v
 ```
 
 ### 3. Circuit setup
@@ -49,7 +49,7 @@ npx snarkjs powersoftau prepare phase2 pot12_0001.ptau pot12_final.ptau -v
 The combination of trusted setup and zkp.r1cs, then add randomness and export proof. Finally, generate the verifier's smart contract.
 
 ```bash
-npx snarkjs groth16 setup zkp.r1cs pot12_final.ptau zkp_0000.zkey
+npx snarkjs groth16 setup zkp.r1cs pot15_final.ptau zkp_0000.zkey
 npx snarkjs zkey contribute zkp_0000.zkey zkp_final.zkey --name="LKH Second Contribution" -v
 npx snarkjs zkey export verificationkey zkp_final.zkey verification_key.json
 npx snarkjs zkey export solidityverifier zkp_final.zkey verifier.sol
