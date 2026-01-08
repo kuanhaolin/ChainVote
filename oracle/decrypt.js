@@ -1,6 +1,6 @@
 const { buildBabyjub } = require("circomlibjs");
 
-async function dccrypt() {
+async function decrypt() {
     const babyJub = await buildBabyjub();
     const F = babyJub.F;
     const sk = 1097094918319998294314187n;
@@ -54,4 +54,81 @@ async function dccrypt() {
     }
 }
 
-dccrypt().catch(console.error);
+decrypt().catch(console.error);
+
+/* calulate with multiple sk parts
+const { buildBabyjub } = require("circomlibjs");
+
+async function decrypt() {
+    const babyJub = await buildBabyjub();
+    const F = babyJub.F;
+    const sk = [
+        186175882921436917984063n,
+        119008492141907715324024n,
+        791910543256653661006100n
+    ];
+    const G = babyJub.Base8;
+    const data = [
+    [
+        [
+            "9221645876368174110961758157755419489792970878899130950662684756868821534630",
+            "21677522106472114192907581749333412416696788200272735806441075884691267290092"
+        ],
+        [   "2586714079882202965739424567648221338042681311026731940825721017580397341767",
+            "12401517460857527514216039930853597935961200557171927078111397796259367732420"
+        ]
+    ],
+    [
+        [
+            "6818442823449567185054843393011467620947663986960832150642085869731131567514",
+            "1217293115879646601564507785332173396190209459710932944391402828912032910185"
+        ],
+        [
+             "19121793089348184804865487776459981439892641715594108834069547726570215979035",
+            "10069355716076078851581441501265258210590267334523580867482995564830962457447"
+        ]
+
+    ],
+    [
+        [
+            "17903207123905321461052080047912542741390124168050540394558659534861538660828",
+            "16404275321715830382763896975394747467138631117052823384770308673035313611214"
+        ],
+        [
+            "9779755518493149780687493391039255811704172730868685341160837159956014554841",
+            "21214751904127019771881039562348656229031231447682472705606336844739161390935"
+        ]
+    ]];
+
+    for (let i = 0; i < 3; i++) {
+        const C1 = [F.e(data[i][0][0]), F.e(data[i][0][1])];
+        const C2 = [F.e(data[i][1][0]), F.e(data[i][1][1])];
+        let Stotal;
+        for (let j = 0; j < 3; j++) {
+            const Si = babyJub.mulPointEscalar(C1, sk[j]);
+            if (j === 0) {
+                Stotal = Si;
+            } else {
+                Stotal = babyJub.addPoint(Stotal, Si);
+            }
+        }
+        // const S = babyJub.mulPointEscalar(C1, sk[j]);
+        const negS = [F.neg(Stotal[0]), Stotal[1]];
+        const M = babyJub.addPoint(C2, negS);
+
+        const zeroPoint = [F.e(0), F.e(1)];
+        let voteCount;
+        let tempPoint = zeroPoint;
+        for (let j = 0; j <= 10**7; j++) {
+            if (F.eq(M[0], tempPoint[0]) && F.eq(M[1], tempPoint[1])) {
+                voteCount = j;
+                break;
+            }
+            tempPoint = babyJub.addPoint(tempPoint, G); // plus G
+        }
+        console.log(i+1, '號最終得票數:', voteCount);
+    }
+}
+
+decrypt().catch(console.error);
+*/
