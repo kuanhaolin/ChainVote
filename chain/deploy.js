@@ -37,6 +37,7 @@ async function main() {
     verifierAddress, // verifier's address
     "1957502675450735006995294171749393708380816510550016513572325377928709312799", // root
     "222222", // nullifier
+    ["10209775308811493123219977751870536028325781179662633829382233991134085591271", "10463201402378381645770001492167936758751449996873528340577630879574526767592"], // pk
     ["LIN", "KUAN", "HAO"], // names
     ["QmHashA123", "QmHashB456", "QmHashC789"], // ipfsCID
     60 // durationTime
@@ -50,7 +51,7 @@ async function main() {
 main()
   .then(() => process.exit(0))
   .catch((error) => {
-    // console.error("部署錯誤:", error.message);
-    // console.error(error);
+    console.error("部署錯誤:", error.message);
+    console.error(error);
     process.exit(1);
   });
